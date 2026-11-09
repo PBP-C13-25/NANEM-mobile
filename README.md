@@ -124,16 +124,16 @@ Setiap anggota bertanggung jawab atas modul yang sama seperti di Proyek Tengah S
 
 ## 🔐 Peran Pengguna
 
-| Fitur                                |      👻 Guest       |      👤 User       | 🛡️ Admin |
-| ------------------------------------ | :-----------------: | :----------------: | :------: |
-| Rekomendasi Tanaman                  | ✅ (tidak disimpan) | ✅ (bisa disimpan) |    ✅    |
-| Lihat, cari & filter Katalog Tanaman |         ❌          |         ✅         |    ✅    |
-| Detail Tanaman + Panduan Budidaya    |         ❌          |         ✅         |    ✅    |
-| CRUD Riwayat Rekomendasi\*           |         ❌          |         ✅         |    ✅    |
-| CRUD Profil Pengguna                 |         ❌          |         ✅         |    ✅    |
-| CRUD Koleksi Tanaman                 |         ❌          |         ✅         |    ✅    |
-| CRUD Katalog Tanaman                 |         ❌          |         ❌         |    ✅    |
-| CRUD Panduan Budidaya                |         ❌          |         ❌         |    ✅    |
+| Fitur                                 |      👻 Guest       |      👤 User       | 🛡️ Admin |
+| ------------------------------------- | :-----------------: | :----------------: | :------: |
+| Rekomendasi Tanaman                   | ✅ (tidak disimpan) | ✅ (bisa disimpan) |    ✅    |
+| Lihat, cari & filter KatalSog Tanaman |         ❌          |         ✅         |    ✅    |
+| Detail Tanaman + Panduan Budidaya     |         ❌          |         ✅         |    ✅    |
+| CRUD Riwayat Rekomendasi\*            |         ❌          |         ✅         |    ✅    |
+| CRUD Profil Pengguna                  |         ❌          |         ✅         |    ✅    |
+| CRUD Koleksi Tanaman                  |         ❌          |         ✅         |    ✅    |
+| CRUD Katalog Tanaman                  |         ❌          |         ❌         |    ✅    |
+| CRUD Panduan Budidaya                 |         ❌          |         ❌         |    ✅    |
 
 \* Hasil rekomendasi tidak dapat diubah manual, hanya nama lahan.
 
@@ -263,21 +263,3 @@ Keputusan akhir mengenai alur dan fitur tetap ditentukan oleh tim. Seluruh kode 
 | 🌐 **Web NANEM (PWS)** | https://jihan-nabiilah-nanem.pws.cs.ui.ac.id/                                                   |
 | 💻 **Repositori Web**  | [Repositori Django PTS](https://github.com/PBP-C13-25/NANEM)                                    |
 | 🎨 **Figma**           | [Buka Figma](https://www.figma.com/design/cHfPMtY5z1b3hZdhOH6qLj/Untitled?t=8elytltRLo4KhqEf-1) |
-
-# nanem_mobile
-
-A new Flutter project.
-
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
