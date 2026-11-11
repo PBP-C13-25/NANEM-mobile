@@ -127,7 +127,7 @@ Setiap anggota bertanggung jawab atas modul yang sama seperti di Proyek Tengah S
 | Fitur                                 |      👻 Guest       |      👤 User       | 🛡️ Admin |
 | ------------------------------------- | :-----------------: | :----------------: | :------: |
 | Rekomendasi Tanaman                   | ✅ (tidak disimpan) | ✅ (bisa disimpan) |    ✅    |
-| Lihat, cari & filter KatalSog Tanaman |         ❌          |         ✅         |    ✅    |
+| Lihat, cari & filter Katalog Tanaman  |         ❌          |         ✅         |    ✅    |
 | Detail Tanaman + Panduan Budidaya     |         ❌          |         ✅         |    ✅    |
 | CRUD Riwayat Rekomendasi\*            |         ❌          |         ✅         |    ✅    |
 | CRUD Profil Pengguna                  |         ❌          |         ✅         |    ✅    |
@@ -145,7 +145,7 @@ Setiap anggota bertanggung jawab atas modul yang sama seperti di Proyek Tengah S
 
 ## 🔄 Alur Integrasi Data Mobile ↔ Web
 
-> 🚧 Bagian ini adalah **rancangan integrasi**. Nama endpoint dan detail teknis akan disesuaikan saat implementasi.
+> 🚧 Integrasi sedang berjalan. Setup DRF, autentikasi, serta API Rekomendasi & Riwayat **sudah diimplementasikan**; endpoint modul lain masih rancangan dan dapat berubah saat implementasi. Status tiap endpoint ada di tabel di bawah.
 
 Aplikasi Flutter **tidak memiliki database sendiri**. Semua data diambil dan disimpan ke **database yang sama dengan situs web NANEM di PWS**. Penghubungnya adalah web service yang ditambahkan ke proyek Django menggunakan **Django REST Framework (DRF)**.
 
@@ -168,42 +168,60 @@ sequenceDiagram
 ### Langkah integrasi
 
 1. **Sisi Django (proyek PTS)**
-   - Menambahkan `djangorestframework` ke proyek web NANEM.
-   - Membuat **serializer** untuk tiap model (`Plant`, `CultivationGuide`, `PlantCollection`, `RecommendationHistory`, `UserProfile`) yang mengubah data model menjadi JSON dan memvalidasi data masuk.
-   - Membuat **API view / ViewSet** beserta URL di bawah prefix `/api/`, dengan permission yang sesuai peran (guest, user, admin).
-   - Logika rekomendasi yang sudah ada (Open-Meteo + rule-based engine) **dipakai ulang**, bukan ditulis ulang di Flutter.
-   - Mengatur konfigurasi agar aplikasi mobile dapat mengakses API di domain PWS.
+   - `djangorestframework` sudah terpasang, dengan pengaturan bersama di `REST_FRAMEWORK` (`config/settings.py`).
+   - Setiap modul menaruh API-nya di `apps/<modul>/api/` (`serializers.py`, `views.py`, `urls.py`) dan mendaftarkannya di `config/urls.py` dengan `path("api/", include("apps.<modul>.api.urls"))`. Contoh lengkap: `apps/recommendations/api/`.
+   - Validasi memakai ulang form yang sudah ada di web, dan logika rekomendasi (Open-Meteo + rule-based engine) **dipakai ulang**, bukan ditulis ulang, sehingga aturan web dan mobile identik.
+   - Permission mengikuti tabel peran: `AllowAny` untuk guest, `IsAuthenticated` untuk user, admin untuk CRUD katalog & panduan; data milik orang lain dijawab 404.
 
 2. **Sisi Flutter**
    - Membuat **model Dart** untuk tiap entitas, lengkap dengan `fromJson` dan `toJson`.
-   - Mengirim request ke API PWS menggunakan package HTTP, lalu menyimpan sesi login agar request berikutnya teridentifikasi sebagai user yang sama.
+   - Mengirim request ke API PWS dan **menyimpan cookie `sessionid`** dari respons login, lalu mengirimnya lagi di setiap request berikutnya.
    - Menampilkan data hasil parsing di widget (misalnya `FutureBuilder`/`ListView`) dan mengirim data form kembali ke server.
    - Unggah foto (profil dan koleksi) dikirim sebagai `multipart/form-data`.
 
-3. **Autentikasi**
+3. **Autentikasi: session cookie**
    - Login di aplikasi memakai akun Django yang sama dengan web, sehingga satu akun berlaku di dua platform.
-   - Mekanisme sesi (session cookie atau token DRF) akan ditentukan saat implementasi.
+   - API memakai **session yang sama dengan web** (`apps.core.api.MobileSessionAuthentication`). Login mengembalikan cookie `sessionid`; aplikasi wajib menyimpan dan mengirim cookie itu di setiap request.
+   - Cek CSRF dimatikan **khusus untuk API**, karena aplikasi mobile bukan browser. Browser tetap terlindungi oleh cookie `SameSite=Lax`, dan halaman web tetap memakai CSRF.
+   - Guest yang mengakses endpoint khusus user mendapat **401** (bukan redirect ke halaman login).
+   - Hasil rekomendasi guest tetap tersimpan di session setelah login atau register, sehingga pengguna bisa mencoba dulu lalu login untuk menyimpannya.
 
-### Rancangan endpoint
+### Format respons
 
-| Modul            | Endpoint                      | Method                               | Keterangan                                                                |
-| ---------------- | ----------------------------- | ------------------------------------ | ------------------------------------------------------------------------- |
-| Autentikasi      | `/api/auth/register/`         | POST                                 | Registrasi akun baru                                                      |
-|                  | `/api/auth/login/`            | POST                                 | Login                                                                     |
-|                  | `/api/auth/logout/`           | POST                                 | Logout                                                                    |
-|                  | `/api/auth/password/`         | POST                                 | Ganti kata sandi                                                          |
-| Rekomendasi      | `/api/recommendations/`       | POST                                 | Generate rekomendasi dari input (guest & user)                            |
-| Riwayat          | `/api/history/`               | GET, POST                            | Daftar riwayat user (`?q=` untuk cari); simpan hasil rekomendasi terakhir |
-|                  | `/api/history/<id>/`          | GET, PATCH, DELETE                   | Detail, ubah nama lahan, hapus                                            |
-| Profil           | `/api/profile/`               | GET, PATCH, DELETE                   | Profil sendiri (ubah nama, username, foto; hapus akun)                    |
-|                  | `/api/profile/search/?q=`     | GET                                  | Cari pengguna berdasarkan username                                        |
-|                  | `/api/profile/<username>/`    | GET                                  | Profil pengguna lain                                                      |
-| Koleksi Tanaman  | `/api/collections/`           | GET, POST                            | Feed koleksi & buat postingan                                             |
-|                  | `/api/collections/<id>/`      | GET, PATCH, DELETE (pemilik)         | Detail, ubah, hapus                                                       |
-|                  | `/api/collections/<id>/like/` | POST                                 | Suka / batal suka                                                         |
-| Katalog Tanaman  | `/api/plants/`                | GET, POST (admin)                    | Daftar, cari, filter & tambah tanaman                                     |
-|                  | `/api/plants/<id>/`           | GET, PUT/PATCH, DELETE (admin)       | Detail, ubah, hapus                                                       |
-| Panduan Budidaya | `/api/plants/<id>/guide/`     | GET, POST, PUT/PATCH, DELETE (admin) | Panduan budidaya untuk satu tanaman                                       |
+| Status | Arti | Contoh body |
+| ------ | ---- | ----------- |
+| 200 / 201 | berhasil | data JSON sesuai endpoint |
+| 204 | berhasil dihapus | kosong |
+| 400 | input tidak valid | `{"errors": {"land_area": ["..."]}}` (error umum di `"__all__"`) |
+| 401 | belum login | `{"detail": "..."}` |
+| 403 | sudah login tetapi tidak berhak | `{"detail": "..."}` |
+| 404 | tidak ada, atau milik pengguna lain | `{"detail": "..."}` |
+| 429 | terlalu banyak percobaan (rekomendasi / login) | `{"detail": "..."}` |
+| 503 | data cuaca Open-Meteo gagal diambil | `{"detail": "..."}` |
+
+### Endpoint
+
+✅ = sudah diimplementasikan · 🕓 = rancangan
+
+| Modul            | Endpoint                      | Method                               | Keterangan                                                                | Status |
+| ---------------- | ----------------------------- | ------------------------------------ | ------------------------------------------------------------------------- | :----: |
+| Autentikasi      | `/api/auth/register/`         | POST                                 | Registrasi akun baru, langsung login                                      |   ✅   |
+|                  | `/api/auth/login/`            | POST                                 | Login (terkunci 15 menit setelah 5x gagal)                                |   ✅   |
+|                  | `/api/auth/logout/`           | POST                                 | Logout                                                                    |   ✅   |
+|                  | `/api/auth/me/`               | GET                                  | Data pengguna yang sedang login (cek sesi saat aplikasi dibuka)           |   ✅   |
+|                  | `/api/auth/password/`         | POST                                 | Ganti kata sandi                                                          |   ✅   |
+| Rekomendasi      | `/api/recommendations/`       | POST                                 | Generate rekomendasi dari input (guest & user)                            |   ✅   |
+| Riwayat          | `/api/history/`               | GET, POST                            | Daftar riwayat user (`?q=` untuk cari); simpan hasil rekomendasi terakhir |   ✅   |
+|                  | `/api/history/<id>/`          | GET, PATCH, DELETE                   | Detail, ubah nama lahan, hapus                                            |   ✅   |
+| Profil           | `/api/profile/`               | GET, PATCH, DELETE                   | Profil sendiri (ubah nama, username, foto; hapus akun)                    |   🕓   |
+|                  | `/api/profile/search/?q=`     | GET                                  | Cari pengguna berdasarkan username                                        |   🕓   |
+|                  | `/api/profile/<username>/`    | GET                                  | Profil pengguna lain                                                      |   🕓   |
+| Koleksi Tanaman  | `/api/collections/`           | GET, POST                            | Feed koleksi & buat postingan                                             |   🕓   |
+|                  | `/api/collections/<id>/`      | GET, PATCH, DELETE (pemilik)         | Detail, ubah, hapus                                                       |   🕓   |
+|                  | `/api/collections/<id>/like/` | POST                                 | Suka / batal suka                                                         |   🕓   |
+| Katalog Tanaman  | `/api/plants/`                | GET, POST (admin)                    | Daftar, cari, filter & tambah tanaman                                     |   🕓   |
+|                  | `/api/plants/<id>/`           | GET, PUT/PATCH, DELETE (admin)       | Detail, ubah, hapus                                                       |   🕓   |
+| Panduan Budidaya | `/api/plants/<id>/guide/`     | GET, POST, PUT/PATCH, DELETE (admin) | Panduan budidaya untuk satu tanaman                                       |   🕓   |
 
 > Simpan riwayat (`POST /api/history/`) tidak menerima daftar tanaman dari aplikasi. Server menyimpan hasil rekomendasi terakhir yang ia hitung sendiri, sehingga hasil tidak bisa dimanipulasi dari sisi klien.
 
