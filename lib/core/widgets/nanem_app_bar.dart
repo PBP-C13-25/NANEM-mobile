@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import '../theme/app_icons.dart';
 import 'brand.dart';
 
 /// AppBar standar NANEM: logo + "Nanem" di semua halaman.
 ///
-/// Tombol back otomatis:
-/// - halaman tab (di dalam HomeShell) → tanpa tombol back
-/// - halaman yang dibuka dengan push (detail, form, dll.) → ada tombol back
+/// Tombol tutup (X) otomatis di pojok KANAN
+/// - halaman tab (di dalam HomeShell) → tanpa tombol tutup
+/// - halaman yang dibuka dengan push (detail, form, dll.) → ada tombol X
+/// Tombol back bawaan HP / gesture geser tetap berfungsi seperti biasa.
 ///
 /// ```dart
 /// Scaffold(
@@ -30,16 +32,22 @@ class NanemAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final inTab = TabScope.isInTab(context);
-    final showBack =
+    final canClose =
         !inTab && (ModalRoute.of(context)?.impliesAppBarDismissal ?? false);
 
     return AppBar(
-      automaticallyImplyLeading: !inTab,
-      // Ada tombol back → logo langsung menempel di sebelahnya
-      leadingWidth: showBack ? 48 : null,
-      titleSpacing: showBack ? 4 : NavigationToolbar.kMiddleSpacing,
+      automaticallyImplyLeading: false, // tidak ada panah di kiri
       title: const BrandLogo(size: 30),
-      actions: actions,
+      actions: [
+        ...?actions,
+        if (canClose)
+          IconButton(
+            tooltip: 'Tutup',
+            icon: const Icon(AppIcons.x),
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
+        const SizedBox(width: 4),
+      ],
     );
   }
 }
